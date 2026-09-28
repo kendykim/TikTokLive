@@ -1,0 +1,17 @@
+.idea
+dist
+venv
+TikTokLive.egg-info
+.pypirc
+dev
+test.py
+.env
+build
+badges.py
+proto-testing
+all-proto
+headers.py.orphaned/
+.orphaned
+__pycache__/
+*.pyc
+.DS_Store

@@ -1,0 +1,126 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "TikTokLive"
+version = "7.0.1"
+description = "Unofficial TikTok LIVE API for Python: real-time chat, gift, like, follow and viewer events from any TikTok livestream."
+readme = "README.md"  # Corrected format
+requires-python = ">=3.10"
+# Not a plain SPDX identifier: LICENSE is AGPL-3.0 plus added Sections
+# 18-21 (library-integration exception, SaaS/relay carve-out, excepted
+# parties), so no SPDX expression describes it. A short string is used
+# rather than { file = "LICENSE" }, which inlines all 37KB of license
+# text into the METADATA License field and renders it on the PyPI page.
+# The full text still ships via [tool.setuptools] license-files.
+license = { text = "Modified AGPL-3.0" }
+authors = [
+    { name = "Isaac Kogan", email = "info@isaackogan.com" }
+]
+keywords = ["tiktok live api", "tiktok api", "tiktoklive", "euler stream", "tiktool", "tiktok live", "python3", "api", "unofficial"]
+dependencies = [
+    "python-dotenv>=1.0.1",
+    "flask>=3.0.0",
+    "markdown>=3.6",
+    "httpx>=0.28.1",
+    "pyee==13.0.1",
+    "ffmpy>=0.3.0",
+    "websockets_proxy==0.1.3",
+    "betterproto2==0.9.1",
+    "async-timeout>=4.0.3",
+    "mashumaro>=3.5",
+    "protobuf3-to-dict>=0.1.5",
+    "protobuf>=3.19.4",
+    "TikTokLiveProto==0.2.2",
+    "EulerApiSdk==0.1.0"
+]
+
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: Other/Proprietary License",
+    "Natural Language :: English",
+    "Framework :: AsyncIO",
+    "Topic :: Communications :: Chat",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Multimedia :: Video",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+]
+
+[dependency-groups]
+# Maintainer-only tooling. Not shipped with the wheel — these are local-dev
+# dependencies for running the codegen scripts under scripts/proto/. Build
+# and publish dependencies live in .github/workflows/publish.yml, not here.
+dev = [
+    "jinja2",
+    "pyyaml",
+    "types-PyYAML",   # mypy stubs for pyyaml (the package itself is untyped)
+    "mypy>=1.10",
+    "pre-commit>=3.7",
+]
+
+[tool.mypy]
+# Pinned to the project's runtime floor (see ``requires-python``). Bump in
+# lockstep with that value.
+python_version = "3.10"
+
+# Existing codebase: don't fail on every untyped helper. We still get coverage
+# on annotated functions (which includes the proto/client surface where
+# field-rename mistakes land), and ``check_untyped_defs`` lets us flag those
+# inside untyped helpers too.
+check_untyped_defs = true
+disallow_untyped_defs = false
+
+# Third-party deps without type stubs would otherwise drown the report. The
+# per-module ``follow_imports`` overrides below keep this from masking real
+# issues inside our own code.
+ignore_missing_imports = true
+
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_unreachable = true
+no_implicit_optional = true
+show_error_codes = true
+
+# Generated outputs are held to the same bar as hand-written code, except
+# ``_aliases.py`` which intentionally attaches @property hooks to existing
+# classes via ``setattr``-style mutation that mypy can't model.
+exclude = [
+    "TikTokLive/proto/_aliases\\.py",
+    "build/",
+    "dist/",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[project.urls]
+Homepage = "https://github.com/isaackogan/TikTokLive"
+Documentation = "https://isaackogan.github.io/TikTokLive/"
+Source = "https://github.com/isaackogan/TikTokLive"
+Issues = "https://github.com/isaackogan/TikTokLive/issues"
+Changelog = "https://github.com/isaackogan/TikTokLive/releases"
+Discord = "https://discord.gg/e2XwPNTBBr"
+"Production API" = "https://www.eulerstream.com/"
+
+[tool.setuptools]
+license-files = ['LICENSE']
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["TikTokLive*"]
+
+[tool.setuptools.package-data]
+"*" = ["*.txt", "*.rst", "*.md"]  # Proper wildcard for including package data

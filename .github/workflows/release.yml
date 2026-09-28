@@ -1,0 +1,99 @@
+name: "Release: Build & Publish to PyPI"
+
+# Manual release flow modelled on TikTokLiveProto's release-python.yml.
+# The maintainer types the explicit version (e.g. ``6.6.6``); the workflow
+# stamps it into pyproject.toml + TikTokLive/__version__.py, builds, publishes
+# to PyPI via OIDC trusted publishing, then commits and tags.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish (no leading 'v'), e.g. 6.6.6"
+        required: true
+        type: string
+
+permissions:
+  contents: write         # push tag + push release branch for the PR
+  pull-requests: write    # open the version-bump PR
+  id-token: write         # PyPI OIDC trusted publishing
+
+jobs:
+  check-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce master branch
+        if: github.ref != 'refs/heads/master'
+        run: |
+          echo "::error::Release must be triggered from the master branch, got ${{ github.ref }}"
+          exit 1
+
+  release:
+    needs: check-branch
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build backend
+        run: python -m pip install --upgrade build
+
+      - name: Stamp version into source
+        run: |
+          VERSION="${{ inputs.version }}"
+          printf 'PACKAGE_VERSION: str = "%s"\n' "$VERSION" > TikTokLive/__version__.py
+          sed -i "s/^version = \".*\"/version = \"$VERSION\"/" pyproject.toml
+          echo "--- TikTokLive/__version__.py ---"
+          cat TikTokLive/__version__.py
+          echo "--- pyproject.toml (version line) ---"
+          grep '^version = ' pyproject.toml
+
+      - name: Build
+        run: python -m build
+
+      - name: Publish to PyPI
+        # Uses OIDC trusted publishing. Configure the project as a trusted
+        # publisher at https://pypi.org/manage/account/publishing/ pointing at
+        # this repo + workflow filename. No PYPI_TOKEN secret needed.
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+      - name: Commit version bump (local) + push tag
+        # Master is a protected branch — direct pushes from
+        # ``github-actions[bot]`` are rejected (GH006). The version-bump
+        # commit is created locally so the tag can point at the exact
+        # released source, then the tag is pushed (tags aren't governed by
+        # the branch-protection rule). The bump itself lands via a PR in
+        # the next step.
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pyproject.toml TikTokLive/__version__.py
+          git commit -m "chore: release v${{ inputs.version }} [skip ci]"
+          git tag "v${{ inputs.version }}"
+          git push origin "v${{ inputs.version }}"
+
+      - name: Open PR for version bump
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: "release/v${{ inputs.version }}"
+          base: master
+          title: "chore: release v${{ inputs.version }}"
+          body: |
+            Automated version bump for `v${{ inputs.version }}`.
+
+            Released to PyPI: https://pypi.org/project/TikTokLive/${{ inputs.version }}/
+            Tag: `v${{ inputs.version }}`
+          commit-message: "chore: release v${{ inputs.version }} [skip ci]"
+          delete-branch: true
+
+      - name: Summary
+        run: |
+          {
+            echo "### Published TikTokLive@${{ inputs.version }} to PyPI"
+            echo ""
+            echo "- Tag: \`v${{ inputs.version }}\` pushed to origin"
+            echo "- Version bump opened as PR — merge to land on master"
+          } >> "$GITHUB_STEP_SUMMARY"

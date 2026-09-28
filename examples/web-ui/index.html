@@ -1,0 +1,563 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TikTokLive Web UI</title>
+  <link rel="icon" type="image/png" href="/assets/logo.png" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <style>
+    :root {
+      color-scheme: dark;
+      --tiktok-pink: #fe2c55;
+      --tiktok-cyan: #25f4ee;
+      --surface: #17171c;
+      --surface-raised: #202027;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 15% 0%, rgba(37, 244, 238, 0.08), transparent 28rem),
+        radial-gradient(circle at 85% 0%, rgba(254, 44, 85, 0.09), transparent 28rem),
+        #0f0f12;
+      color: #f2f2f2;
+    }
+    .app-header {
+      padding: 1.25rem 0;
+      background: rgba(23, 23, 28, 0.94);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid #2a2a32;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+    }
+    .brand-mark {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.65rem;
+      margin-bottom: 1rem;
+      font-size: 1.2rem;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+    }
+    .brand-logo {
+      width: 76px;
+      height: 38px;
+      display: block;
+      object-fit: contain;
+      filter: drop-shadow(-2px 0 5px rgba(37, 244, 238, 0.28)) drop-shadow(2px 0 5px rgba(254, 44, 85, 0.28));
+    }
+    .header-controls { max-width: 980px; margin: 0 auto; }
+    #username {
+      width: min(100%, 290px);
+      border-color: #393943;
+      color: #d8d8df;
+      background: #101014;
+    }
+    #username:read-only {
+      color: #b8b8c2;
+      cursor: default;
+      background: #18181d;
+    }
+    #connect-btn { border-color: var(--tiktok-pink); background: var(--tiktok-pink); color: white; }
+    #connect-btn:hover { border-color: #ff5575; background: #ff4165; }
+    #connect-btn:disabled {
+      border-color: #303038;
+      background: #24242a;
+      color: #666672;
+      cursor: not-allowed;
+      opacity: 0.65;
+    }
+    #disconnect-btn { border-color: #464650; background: #33333c; color: #f2f2f2; }
+    #disconnect-btn:disabled {
+      background: #24242a;
+      color: #666672;
+      cursor: not-allowed;
+      opacity: 0.65;
+    }
+    #guide-btn { border-color: rgba(37, 244, 238, 0.5); background: rgba(37, 244, 238, 0.1); color: var(--tiktok-cyan); }
+    #guide-btn:hover { background: rgba(37, 244, 238, 0.18); }
+    #language {
+      min-width: 150px;
+      padding: 0.5rem;
+      border: 1px solid #33333c;
+      border-radius: 6px;
+      background: #0f0f12;
+      color: #f2f2f2;
+    }
+    #status {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 1.5rem;
+      font-size: 0.85rem;
+      color: #9a9aa5;
+    }
+    #settings {
+      max-width: 900px;
+      margin: 1.5rem auto 0;
+      padding: 1.25rem;
+      border: 1px solid #2a2a32;
+      border-radius: 14px;
+      background: rgba(23, 23, 28, 0.94);
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.2);
+    }
+    #settings summary { cursor: pointer; font-weight: 600; }
+    .settings-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+    .field { display: flex; flex-direction: column; gap: 0.3rem; }
+    .field label { color: #aaaab5; font-size: 0.8rem; }
+    .field input, .field select {
+      padding: 0.5rem;
+      border: 1px solid #33333c;
+      border-radius: 6px;
+      background: #0f0f12;
+      color: #f2f2f2;
+    }
+    .field input:focus, .field select:focus {
+      border-color: var(--tiktok-cyan);
+      box-shadow: 0 0 0 0.2rem rgba(37, 244, 238, 0.12);
+    }
+    .secret-state { color: #777784; font-size: 0.75rem; }
+    .clear-secret { flex-direction: row; align-items: center; font-size: 0.75rem; color: #aaaab5; }
+    #save-config { margin-top: 1rem; cursor: pointer; border: 0; background: var(--tiktok-pink); }
+    #config-status { margin-left: 0.75rem; color: #9a9aa5; font-size: 0.85rem; }
+    .feed-panel {
+      max-width: 900px;
+      margin: 1.5rem auto 0;
+      overflow: hidden;
+      border: 1px solid #2a2a32;
+      border-radius: 14px;
+      background: rgba(23, 23, 28, 0.94);
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.2);
+    }
+    .feed-header {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid #2a2a32;
+      font-weight: 700;
+    }
+    .feed-indicator {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--tiktok-pink);
+      box-shadow: 0 0 10px rgba(254, 44, 85, 0.8);
+    }
+    #feed {
+      height: clamp(320px, 52vh, 580px);
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      scrollbar-color: #4b4b57 #17171c;
+      scrollbar-width: thin;
+    }
+    #feed::-webkit-scrollbar { width: 9px; }
+    #feed::-webkit-scrollbar-track { background: #17171c; }
+    #feed::-webkit-scrollbar-thumb { border: 2px solid #17171c; border-radius: 10px; background: #4b4b57; }
+    #feed .row {
+      margin: 0;
+      padding: 0.75rem 1rem;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      line-height: 1.4;
+    }
+    .row .ts { color: #6a6a75; font-size: 0.8rem; margin-right: 0.4rem; }
+    .row .user { font-weight: 600; }
+    .row.comment { border-color: #303039; background: #1c1c22; }
+    .row.gift { border-color: #684f20; background: linear-gradient(90deg, #3a2a12, #241d14); }
+    .row.like { border-color: #612439; background: linear-gradient(90deg, #351522, #22151a); }
+    .row.system { background: transparent; color: #9a9aa5; font-style: italic; }
+    .row.error { background: #3a1414; color: #ff8080; }
+    #guide-modal {
+      width: min(900px, 90vw);
+      height: min(760px, 85vh);
+      padding: 0;
+      border: 1px solid #3a3a45;
+      border-radius: 10px;
+      background: #17171c;
+      color: #f2f2f2;
+    }
+    #guide-modal::backdrop { background: rgba(0, 0, 0, 0.75); }
+    .guide-header { display: flex; align-items: center; padding: 0.8rem 1rem; border-bottom: 1px solid #2a2a32; }
+    .guide-header h2 { margin: 0; font-size: 1.1rem; }
+    #close-guide { margin-left: auto; padding: 0.4rem 0.8rem; cursor: pointer; }
+    #guide-content { padding: 1rem 2rem 2rem; height: calc(100% - 70px); overflow: auto; font-size: 16px; line-height: 1.5; }
+    #guide-content > :first-child { margin-top: 0; }
+    #guide-content h1, #guide-content h2 {
+      margin-top: 1.5rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.35rem;
+      border-bottom: 1px solid #30363d;
+      line-height: 1.25;
+    }
+    #guide-content h1 { font-size: 2rem; }
+    #guide-content h2 { font-size: 1.5rem; }
+    #guide-content h3 { margin-top: 1.5rem; font-size: 1.2rem; }
+    #guide-content p, #guide-content ul, #guide-content ol, #guide-content table,
+    #guide-content pre, #guide-content blockquote { margin: 0 0 1rem; }
+    #guide-content a { color: #58a6ff; }
+    #guide-content code {
+      padding: 0.15em 0.4em;
+      border-radius: 6px;
+      background: #2d333b;
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      font-size: 0.85em;
+    }
+    #guide-content pre {
+      padding: 1rem;
+      overflow: auto;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      background: #0d1117;
+    }
+    #guide-content pre code { padding: 0; background: transparent; font-size: 0.85rem; }
+    #guide-content blockquote { padding: 0 1rem; color: #8b949e; border-left: 0.25rem solid #3b434b; }
+    #guide-content table { width: 100%; border-spacing: 0; border-collapse: collapse; display: block; overflow: auto; }
+    #guide-content th, #guide-content td { padding: 0.45rem 0.8rem; border: 1px solid #30363d; }
+    #guide-content tr:nth-child(2n) { background: #161b22; }
+    #guide-content hr { height: 0.25rem; margin: 1.5rem 0; border: 0; background: #30363d; }
+    @media (max-width: 576px) {
+      .header-controls > * { width: 100%; }
+      #username { width: 100%; max-width: none; }
+      #language { width: 100%; }
+      #settings { padding: 1rem; }
+      #guide-content { padding: 1rem; }
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <div class="container text-center">
+      <div class="brand-mark"><img class="brand-logo" src="/assets/logo.png" alt="TikTok LIVE" /><span>TikTok LIVE Monitor</span></div>
+      <div class="header-controls d-flex flex-wrap justify-content-center align-items-center gap-2">
+        <input id="username" class="form-control" type="text" placeholder="@username" readonly aria-readonly="true" />
+        <button id="connect-btn" class="btn px-4 fw-semibold" data-i18n="connect">Connect</button>
+        <button id="disconnect-btn" class="btn px-4 fw-semibold" data-i18n="disconnect" disabled>Disconnect</button>
+        <button id="guide-btn" class="btn px-3 fw-semibold" data-i18n="guide">User guide</button>
+        <select id="language" class="form-select w-auto" aria-label="Language">
+          <option value="en">🇬🇧 Language</option>
+          <option value="vi">🇻🇳 Ngôn ngữ</option>
+          <option value="zh">🇨🇳 语言</option>
+        </select>
+      </div>
+      <div class="mt-3"><span id="status" class="badge rounded-pill text-bg-dark px-3 py-2" data-i18n="idle">Idle</span></div>
+    </div>
+  </header>
+  <main class="container pb-5">
+  <details id="settings">
+    <summary class="fs-6" data-i18n="settings">Settings</summary>
+    <div class="settings-grid">
+      <div class="field"><label data-i18n="username">TikTok username</label><input class="form-control" data-env="TIKTOK_UNIQUE_ID" /></div>
+      <div class="field"><label data-i18n="logLevel">Log level</label><select class="form-select" data-env="LOG_LEVEL"><option>DEBUG</option><option>INFO</option><option>WARNING</option><option>ERROR</option></select></div>
+      <div class="field"><label data-i18n="newComments">Only new comments</label><select class="form-select" data-env="ONLY_NEW_COMMENTS"><option value="true">true</option><option value="false">false</option></select></div>
+      <div class="field"><label data-i18n="signUrl">Sign API URL</label><input class="form-control" data-env="SIGN_API_URL" /></div>
+      <div class="field"><label data-i18n="disableMessages">Sign server messages disabled</label><select class="form-select" data-env="SIGN_SERVER_MESSAGE_DISABLED"><option value="false">false</option><option value="true">true</option></select></div>
+      <div class="field"><label data-i18n="warnings">Deprecation warnings</label><select class="form-select" data-env="SEND_DEPRECATION_WARNINGS"><option value="true">true</option><option value="false">false</option></select></div>
+      <div class="field"><label data-i18n="signKey">Sign API key</label><input class="form-control" type="password" data-secret="SIGN_API_KEY" data-i18n-placeholder="secretPlaceholder" placeholder="Leave blank to keep current" /><span class="secret-state" data-state="SIGN_API_KEY"></span><label class="clear-secret"><input class="form-check-input me-1" type="checkbox" data-clear-secret="SIGN_API_KEY" /> <span data-i18n="clearSecret">Clear saved value</span></label></div>
+      <div class="field"><label data-i18n="sessionId">TikTok session ID</label><input class="form-control" type="password" data-secret="TIKTOK_SESSION_ID" data-i18n-placeholder="secretPlaceholder" placeholder="Leave blank to keep current" /><span class="secret-state" data-state="TIKTOK_SESSION_ID"></span><label class="clear-secret"><input class="form-check-input me-1" type="checkbox" data-clear-secret="TIKTOK_SESSION_ID" /> <span data-i18n="clearSecret">Clear saved value</span></label></div>
+      <div class="field"><label data-i18n="targetIdc">TikTok target IDC</label><input class="form-control" type="password" data-secret="TIKTOK_TARGET_IDC" data-i18n-placeholder="secretPlaceholder" placeholder="Leave blank to keep current" /><span class="secret-state" data-state="TIKTOK_TARGET_IDC"></span><label class="clear-secret"><input class="form-check-input me-1" type="checkbox" data-clear-secret="TIKTOK_TARGET_IDC" /> <span data-i18n="clearSecret">Clear saved value</span></label></div>
+      <div class="field"><label data-i18n="signHost">Authorized sign host</label><input class="form-control" data-env="WHITELIST_AUTHENTICATED_SESSION_ID_HOST" /></div>
+    </div>
+    <button id="save-config" class="btn btn-danger px-4 fw-semibold" data-i18n="save">Save settings</button><span id="config-status"></span>
+  </details>
+  <section class="feed-panel" aria-live="polite">
+    <div class="feed-header"><span class="feed-indicator"></span><span data-i18n="liveEvents">Live events</span></div>
+    <div id="feed"></div>
+  </section>
+  </main>
+  <dialog id="guide-modal">
+    <div class="guide-header"><h2 data-i18n="guideTitle">User guide</h2><button id="close-guide" class="btn btn-outline-light btn-sm" data-i18n="close">Close</button></div>
+    <article id="guide-content"></article>
+  </dialog>
+
+  <script>
+    const translations = {
+      en: {
+        connect: "Connect", disconnect: "Disconnect", guide: "User guide", idle: "Idle", liveEvents: "Live events", languageLabel: "Language",
+        settings: "Settings", username: "TikTok username", logLevel: "Log level",
+        newComments: "Only new comments", signUrl: "Sign API URL",
+        disableMessages: "Sign server messages disabled", warnings: "Deprecation warnings",
+        signKey: "Sign API key", sessionId: "TikTok session ID", targetIdc: "TikTok target IDC",
+        signHost: "Authorized sign host", clearSecret: "Clear saved value", save: "Save settings",
+        close: "Close", guideTitle: "User guide", secretPlaceholder: "Leave blank to keep current",
+        configured: "Configured (enter a value to replace)", notConfigured: "Not configured",
+        connecting: "Connecting...", connected: "Connected to", disconnected: "Disconnected",
+        streamError: "Stream error - retrying...", error: "Error", failedConnect: "Failed to connect",
+        saving: "Saving...", saved: "Saved", saveFailed: "Save failed",
+        configLoadFailed: "Could not load settings", guideLoadFailed: "Could not load the user guide",
+        sent: "sent", likes: "likes", total: "total"
+      },
+      vi: {
+        connect: "Kết nối", disconnect: "Ngắt kết nối", guide: "Hướng dẫn sử dụng", idle: "Chờ kết nối", liveEvents: "Sự kiện trực tiếp", languageLabel: "Ngôn ngữ",
+        settings: "Cài đặt", username: "Tên tài khoản TikTok", logLevel: "Mức ghi log",
+        newComments: "Chỉ nhận bình luận mới", signUrl: "URL API ký",
+        disableMessages: "Tắt thông báo máy chủ ký", warnings: "Cảnh báo phiên bản cũ",
+        signKey: "Khóa Sign API", sessionId: "TikTok session ID", targetIdc: "TikTok target IDC",
+        signHost: "Máy chủ ký được cho phép", clearSecret: "Xóa giá trị đã lưu", save: "Lưu cài đặt",
+        close: "Đóng", guideTitle: "Hướng dẫn sử dụng", secretPlaceholder: "Để trống để giữ giá trị hiện tại",
+        configured: "Đã cấu hình (nhập giá trị để thay thế)", notConfigured: "Chưa cấu hình",
+        connecting: "Đang kết nối...", connected: "Đã kết nối tới", disconnected: "Đã ngắt kết nối",
+        streamError: "Lỗi luồng dữ liệu - đang thử lại...", error: "Lỗi", failedConnect: "Không thể kết nối",
+        saving: "Đang lưu...", saved: "Đã lưu", saveFailed: "Lưu thất bại",
+        configLoadFailed: "Không thể đọc cài đặt", guideLoadFailed: "Không thể tải hướng dẫn sử dụng",
+        sent: "đã gửi", likes: "lượt thích", total: "tổng"
+      },
+      zh: {
+        connect: "连接", disconnect: "断开连接", guide: "使用指南", idle: "等待连接", liveEvents: "实时事件", languageLabel: "语言",
+        settings: "设置", username: "TikTok 用户名", logLevel: "日志级别",
+        newComments: "只接收新评论", signUrl: "签名 API 地址",
+        disableMessages: "关闭签名服务器消息", warnings: "弃用警告",
+        signKey: "签名 API 密钥", sessionId: "TikTok session ID", targetIdc: "TikTok target IDC",
+        signHost: "授权签名主机", clearSecret: "清除已保存的值", save: "保存设置",
+        close: "关闭", guideTitle: "使用指南", secretPlaceholder: "留空以保留当前值",
+        configured: "已配置（输入新值可替换）", notConfigured: "未配置",
+        connecting: "正在连接...", connected: "已连接到", disconnected: "已断开连接",
+        streamError: "数据流错误，正在重试...", error: "错误", failedConnect: "连接失败",
+        saving: "正在保存...", saved: "已保存", saveFailed: "保存失败",
+        configLoadFailed: "无法读取设置", guideLoadFailed: "无法加载使用指南",
+        sent: "发送了", likes: "个赞", total: "总计"
+      }
+    };
+
+    const usernameInput = document.getElementById("username");
+    const connectBtn = document.getElementById("connect-btn");
+    const disconnectBtn = document.getElementById("disconnect-btn");
+    const statusEl = document.getElementById("status");
+    const feedEl = document.getElementById("feed");
+    const configStatusEl = document.getElementById("config-status");
+    const languageSelect = document.getElementById("language");
+    const guideModal = document.getElementById("guide-modal");
+    const guideContent = document.getElementById("guide-content");
+
+    let currentLanguage = localStorage.getItem("tiktoklive-language") || "en";
+    if (!translations[currentLanguage]) currentLanguage = "en";
+    languageSelect.value = currentLanguage;
+
+    function t(key) {
+      return translations[currentLanguage][key] || translations.en[key] || key;
+    }
+
+    function applyLanguage() {
+      document.documentElement.lang = currentLanguage;
+      languageSelect.setAttribute("aria-label", t("languageLabel"));
+      languageSelect.title = t("languageLabel");
+      document.querySelectorAll("[data-i18n]").forEach((element) => {
+        element.textContent = t(element.dataset.i18n);
+      });
+      document.querySelectorAll("[data-i18n-placeholder]").forEach((element) => {
+        element.placeholder = t(element.dataset.i18nPlaceholder);
+      });
+      document.querySelectorAll("[data-state]").forEach((element) => {
+        const configured = element.dataset.configured === "true";
+        element.textContent = configured ? t("configured") : t("notConfigured");
+      });
+    }
+
+    let eventSource = null;
+    let statusPollTimer = null;
+
+    function setStatus(text) {
+      statusEl.textContent = text;
+    }
+
+    function applyConnectionState(state, username = "", error = "") {
+      const connected = state === "connected";
+      const connecting = state === "connecting";
+      connectBtn.disabled = connected || connecting;
+      disconnectBtn.disabled = !connected;
+
+      if (connected) {
+        setStatus(`${t("connected")} @${username.replace(/^@/, "")}`);
+      } else if (connecting) {
+        setStatus(t("connecting"));
+      } else if (state === "error") {
+        setStatus(error || t("error"));
+      } else {
+        setStatus(t("disconnected"));
+      }
+    }
+
+    async function syncConnectionStatus(keepPolling = false) {
+      try {
+        const response = await fetch("/api/status", { cache: "no-store" });
+        if (!response.ok) return;
+        const state = await response.json();
+        applyConnectionState(state.status, state.username, state.error);
+
+        clearTimeout(statusPollTimer);
+        if (keepPolling && state.status === "connecting") {
+          statusPollTimer = setTimeout(() => syncConnectionStatus(true), 500);
+        }
+      } catch {
+        if (keepPolling) statusPollTimer = setTimeout(() => syncConnectionStatus(true), 1000);
+      }
+    }
+
+    function addRow(className, ts, html) {
+      const row = document.createElement("div");
+      row.className = `row ${className}`;
+      row.innerHTML = `<span class="ts">${formatTs(ts)}</span>${html}`;
+      feedEl.prepend(row);
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement("div");
+      div.textContent = text ?? "";
+      return div.innerHTML;
+    }
+
+    function formatTs(ts) {
+      const date = ts ? new Date(ts * 1000) : new Date();
+      return date.toLocaleTimeString([], { hour12: false });
+    }
+
+    function ensureStream() {
+      if (eventSource) return;
+
+      eventSource = new EventSource("/api/stream");
+      eventSource.onmessage = (message) => {
+        const event = JSON.parse(message.data);
+
+        switch (event.type) {
+          case "connect":
+            clearTimeout(statusPollTimer);
+            applyConnectionState("connected", event.username);
+            addRow("system", event.ts, `${t("connected")} @${escapeHtml(event.username)}`);
+            break;
+          case "disconnect":
+            clearTimeout(statusPollTimer);
+            applyConnectionState("disconnected");
+            addRow("system", event.ts, t("disconnected"));
+            break;
+          case "comment":
+            addRow("comment", event.ts, `<span class="user">${escapeHtml(event.user)}</span>: ${escapeHtml(event.comment)}`);
+            break;
+          case "gift":
+            addRow("gift", event.ts, `<span class="user">${escapeHtml(event.user)}</span> ${t("sent")} ${event.count}x "${escapeHtml(event.gift)}"`);
+            break;
+          case "like":
+            addRow("like", event.ts, `<span class="user">${escapeHtml(event.user)}</span> ${t("sent")} ${event.count} ${t("likes")} (${event.total} ${t("total")})`);
+            break;
+          case "error":
+            clearTimeout(statusPollTimer);
+            applyConnectionState("error", "", event.message);
+            addRow("error", event.ts, escapeHtml(event.message));
+            break;
+        }
+      };
+      eventSource.onerror = () => setStatus(t("streamError"));
+    }
+
+    async function connect() {
+      const username = usernameInput.value.trim();
+      if (!username) return;
+
+      feedEl.innerHTML = "";
+      applyConnectionState("connecting", username);
+      ensureStream();
+
+      const response = await fetch("/api/connect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        applyConnectionState("error", "", data.error || t("failedConnect"));
+        addRow("error", null, data.error || t("failedConnect"));
+      } else {
+        syncConnectionStatus(true);
+      }
+    }
+
+    async function disconnect() {
+      connectBtn.disabled = true;
+      disconnectBtn.disabled = true;
+      await fetch("/api/disconnect", { method: "POST" });
+      applyConnectionState("disconnected");
+    }
+
+    async function loadConfig() {
+      const response = await fetch("/api/config");
+      const config = await response.json();
+      document.querySelectorAll("[data-env]").forEach((input) => {
+        input.value = config.values[input.dataset.env] ?? "";
+      });
+      usernameInput.value = config.values.TIKTOK_UNIQUE_ID ?? "";
+      document.querySelectorAll("[data-state]").forEach((element) => {
+        element.dataset.configured = config.secretConfigured[element.dataset.state] ? "true" : "false";
+        element.textContent = element.dataset.configured === "true" ? t("configured") : t("notConfigured");
+      });
+    }
+
+    async function saveConfig() {
+      const values = {};
+      document.querySelectorAll("[data-env]").forEach((input) => {
+        values[input.dataset.env] = input.value;
+      });
+      document.querySelectorAll("[data-secret]").forEach((input) => {
+        if (input.value) values[input.dataset.secret] = input.value;
+      });
+      const clearSecrets = [...document.querySelectorAll("[data-clear-secret]:checked")]
+        .map((input) => input.dataset.clearSecret);
+
+      configStatusEl.textContent = t("saving");
+      const response = await fetch("/api/config", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ values, clearSecrets }),
+      });
+      const data = await response.json().catch(() => ({}));
+      configStatusEl.textContent = response.ok ? t("saved") : (data.error || t("saveFailed"));
+      if (response.ok) {
+        usernameInput.value = values.TIKTOK_UNIQUE_ID;
+        document.querySelectorAll("[data-secret]").forEach((input) => input.value = "");
+        document.querySelectorAll("[data-clear-secret]").forEach((input) => input.checked = false);
+        await loadConfig();
+      }
+    }
+
+    async function showGuide() {
+      guideContent.textContent = t("connecting");
+      if (!guideModal.open) guideModal.showModal();
+      const guideLanguage = currentLanguage;
+      try {
+        const response = await fetch(`/api/guide?lang=${encodeURIComponent(guideLanguage)}`);
+        if (!response.ok) throw new Error();
+        // The server renders trusted local Markdown guide files to HTML.
+        guideContent.innerHTML = await response.text();
+      } catch {
+        guideContent.textContent = t("guideLoadFailed");
+      }
+    }
+
+    connectBtn.addEventListener("click", connect);
+    disconnectBtn.addEventListener("click", disconnect);
+    document.getElementById("save-config").addEventListener("click", saveConfig);
+    document.getElementById("guide-btn").addEventListener("click", showGuide);
+    document.getElementById("close-guide").addEventListener("click", () => guideModal.close());
+    languageSelect.addEventListener("change", () => {
+      currentLanguage = languageSelect.value;
+      localStorage.setItem("tiktoklive-language", currentLanguage);
+      applyLanguage();
+      syncConnectionStatus();
+      if (guideModal.open) showGuide();
+    });
+    ensureStream();
+    applyLanguage();
+    loadConfig().catch(() => configStatusEl.textContent = t("configLoadFailed"));
+    syncConnectionStatus();
+  </script>
+</body>
+</html>
